@@ -5,7 +5,7 @@ const uuidv1 = require('uuid/v1');
 const Channel = require('./models/channel');
 const Message = require('./models/channel');
 const User = require('./models/user');
-const {trySendMessage} = require('./handlers/utils');
+const {trySendMessage, limitedLengthArray} = require('./handlers/utils');
 
 
 const { noUsernameError, usernameInUseError, nonExistingChannel } = require('./handlers/error-handler');
@@ -15,9 +15,9 @@ const wss = new WebSocket.Server({ port: 3000, path: '/chatservice' });
 let clients = new Map();
 
 let defaultChannels = [
-    new Channel(uuidv1(), 'Général', true, []),
-    new Channel(uuidv1(), 'Équipe 1', false, []),
-    new Channel(uuidv1(), 'Équipe 2', false, []),
+    new Channel(uuidv1(), 'Général', true, limitedLengthArray(100)),
+    new Channel(uuidv1(), 'Équipe 1', false, limitedLengthArray(100)),
+    new Channel(uuidv1(), 'Équipe 2', false, limitedLengthArray(100)),
 ];
 
 /* Socket events */
@@ -43,6 +43,27 @@ const onMessage = (payload, user) => {
     for (let [username, client] of targettedChannel.clients) {
         trySendMessage(new User(username, client), message);
     }
+};
+
+const emitOnGetChannel = (channelId, user) => {
+    const message = JSON.stringify(
+        {
+            eventType: 'onGetChannel',
+            channelId,
+            data: channels.get(channelId).messages,
+            sender: 'Admin',
+            timestamp: new Date()
+        });
+    trySendMessage(user, message);
+};
+
+const onGetChannel = (payload, user) => {
+    const {channelId} = payload;
+
+    if (!channelId || !channels.has(channelId)) {
+        return nonExistingChannel(user.client, channelId);
+    }
+    emitOnGetChannel(channelId, user);
 };
 
 const onCreateChannel = (payload, client) => {
@@ -123,6 +144,7 @@ wss.on('connection', (ws, request) => {
     clients.set(username, ws);
     defaultChannels.filter(ch => ch.joinStatus).forEach(ch => {
         addClientToChannel(username, ws, ch.id);
+        emitOnGetChannel(ch.id, user);
     });
     console.log(`Client connected with username ${username}`);
     updateAllChannelsList();

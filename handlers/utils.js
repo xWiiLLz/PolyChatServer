@@ -19,7 +19,21 @@ const tryClose = (client, code = 1006, message = '') => {
     }
 };
 
+function limitedLengthArray(length) {
+    let array = new Array();
+
+    array.push = function () {
+        if (this.length >= length) {
+            this.shift();
+        }
+        return Array.prototype.push.apply(this,arguments);
+    };
+
+    return array;
+}
+
 module.exports = {
     trySendMessage,
-    tryClose
+    tryClose,
+    limitedLengthArray,
 };
