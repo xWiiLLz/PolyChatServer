@@ -40,6 +40,7 @@ const onMessage = (payload, user) => {
             sender: user.username,
             timestamp: new Date()
         });
+    targettedChannel.messages.push(data);
     for (let [username, client] of targettedChannel.clients) {
         trySendMessage(new User(username, client), message);
     }
@@ -199,13 +200,16 @@ const addClientToChannel = (username, client, channelId) => {
     }
     const channel = channels.get(channelId);
     channel.clients.set(username, client);
+
+    const data = `${username} a rejoint le groupe`;
     const joinedMessage = JSON.stringify({
         eventType: 'onMessage',
         channelId,
-        data: `${username} a rejoint le groupe`,
+        data,
         sender: 'Admin',
         timestamp: new Date()
     });
+    channel.messages.push(data);
     channel.clients.forEach(client => {
        trySendMessage({client}, joinedMessage);
     });
@@ -218,13 +222,15 @@ const removeClientFromChannel = (user, channelId) => {
     const channel = channels.get(channelId);
     channel.clients.delete(user.username);
 
+    const data = `${user.username} a quitté le groupe`;
     const leftMessage = JSON.stringify({
         eventType: 'onMessage',
         channelId,
-        data: `${user.username} a quitté le groupe`,
+        data,
         sender: 'Admin',
         timestamp: new Date()
     });
+    channel.messages.push(data);
 
     channel.clients.forEach(client => {
         trySendMessage({client}, leftMessage);
