@@ -4,7 +4,7 @@ const queryString = require('query-string');
 const WebSocket = require('ws');
 const uuidv1 = require('uuid/v1');
 const Channel = require('./models/channel');
-const Message = require('./models/channel');
+const Message = require('./models/message');
 const User = require('./models/user');
 const {trySendMessage, limitedLengthArray} = require('./handlers/utils');
 
@@ -33,15 +33,17 @@ const onMessage = (payload, user) => {
     }
 
     const targettedChannel = channels.get(channelId);
+    const timestamp = new Date();
     const message = JSON.stringify(
         {
             eventType: 'onMessage',
             channelId,
             data,
             sender: user.username,
-            timestamp: new Date()
+            timestamp
         });
-    targettedChannel.messages.push(data);
+    targettedChannel.messages.push(new Message(null, channelId, data, user.username, timestamp));
+
     for (let [username, client] of targettedChannel.clients) {
         trySendMessage(new User(username, client), message);
     }
@@ -82,7 +84,10 @@ const onCreateChannel = (payload, user) => {
     do {
         uuid = uuidv1();
     } while(channels.has(uuid));
-    channels.set(uuid, new Channel(uuid, data, true, limitedLengthArray(100)));
+    channels.set(uuid, {
+        ...new Channel(uuid, data, true, limitedLengthArray(100)),
+        clients: new Map()
+    });
     updateAllChannelsList();
 };
 
@@ -221,14 +226,15 @@ const addClientToChannel = (username, client, channelId) => {
     channel.clients.set(username, client);
 
     const data = `${username} a rejoint le groupe`;
+    const timestamp = new Date();
     const joinedMessage = JSON.stringify({
         eventType: 'onMessage',
         channelId,
         data,
         sender: 'Admin',
-        timestamp: new Date()
+        timestamp
     });
-    channel.messages.push(data);
+    channel.messages.push(new Message(null, channelId, data, 'Admin', timestamp));
     channel.clients.forEach(client => {
        trySendMessage({client}, joinedMessage);
     });
@@ -242,14 +248,16 @@ const removeClientFromChannel = (user, channelId) => {
     channel.clients.delete(user.username);
 
     const data = `${user.username} a quitté le groupe`;
+    const timestamp = new Date();
+
     const leftMessage = JSON.stringify({
         eventType: 'onMessage',
         channelId,
         data,
         sender: 'Admin',
-        timestamp: new Date()
+        timestamp
     });
-    channel.messages.push(data);
+    channel.messages.push(new Message(null, channelId, data, 'Admin', timestamp));
 
     channel.clients.forEach(client => {
         trySendMessage({client}, leftMessage);
