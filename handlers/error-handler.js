@@ -32,6 +32,15 @@ function nonExistingChannelError(ws, id) {
 function noMessageError(ws) {
     trySendMessage(new User(null, ws), simpleErrorMessage(`You have to provide a message in the payload's data property...`));
 }
+
+function noChannelNameError(ws) {
+    trySendMessage(new User(null, ws), simpleErrorMessage(`You have to provide a channel name in the payload's data property...`));
+}
+
+function channelNameLengthError(ws) {
+    trySendMessage(new User(null, ws), simpleErrorMessage(`The channel's name must be between 5 and 20 characters!`));
+}
+
 function wrongWayAroundError(ws) {
     trySendMessage(new User(null, ws), simpleErrorMessage(`You've got this the wrong way around, friend. I'm the one supposed to send you this event, not the other way around!`));
 }
@@ -41,5 +50,7 @@ module.exports = {
     usernameInUseError,
     nonExistingChannelError,
     noMessageError,
+    noChannelNameError,
+    channelNameLengthError,
     wrongWayAroundError
 };

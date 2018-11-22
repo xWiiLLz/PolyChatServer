@@ -1,4 +1,5 @@
 'use strict';
+
 const queryString = require('query-string');
 const WebSocket = require('ws');
 const uuidv1 = require('uuid/v1');
@@ -8,7 +9,7 @@ const User = require('./models/user');
 const {trySendMessage, limitedLengthArray} = require('./handlers/utils');
 
 
-const { noUsernameError, usernameInUseError, nonExistingChannelError, noMessageError, wrongWayAroundError } = require('./handlers/error-handler');
+const { noUsernameError, usernameInUseError, nonExistingChannelError, noMessageError, noChannelNameError, channelNameLengthError, wrongWayAroundError } = require('./handlers/error-handler');
  
 const wss = new WebSocket.Server({ port: 3000, path: '/chatservice' });
  
@@ -68,7 +69,21 @@ const onGetChannel = (payload, user) => {
 };
 
 const onCreateChannel = (payload, user) => {
+    const { data } = payload;
+    if (!data) {
+        return noChannelNameError(user.client);
+    }
 
+    if (data.length < 5 || data.length > 20) {
+        return channelNameLengthError(user.client);
+    }
+
+    let uuid;
+    do {
+        uuid = uuidv1();
+    } while(channels.has(uuid));
+    channels.set(uuid, new Channel(uuid, data, true, limitedLengthArray(100)));
+    updateAllChannelsList();
 };
 
 const onJoinChannel = (payload, user) => {
@@ -109,7 +124,6 @@ const updateChannelsList = (payload, user) => {
 
 const onError = (payload, user) => {
     return wrongWayAroundError(user.client);
-
 };
 
 const supportedEvents = {
