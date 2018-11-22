@@ -82,7 +82,12 @@ const onJoinChannel = (payload, user) => {
  * @param user - Object containing
  */
 const onLeaveChannel = (payload, user) => {
-    // TODO
+    const { channelId } = payload;
+    if (!channelId || !channels.has(channelId)) {
+        return nonExistingChannelError(client, channelId);
+    }
+
+    removeClientFromChannel(user, channelId);
 };
 
 
@@ -160,9 +165,9 @@ wss.on('connection', (ws, request) => {
     ws.on('close', function (ws, code, reason) {
         console.log(`Client with username ${username} disconnected`);
         clients.delete(username);
-        for (let [channelName, channel] of channels) {
-            if (channel.users.has(username)) {
-                channel.users.delete(username);
+        for (let [channelId, channel] of channels) {
+            if (channel.clients.has(username)) {
+                removeClientFromChannel(user, channelId);
             }
         }
         updateAllChannelsList();
@@ -206,6 +211,25 @@ const addClientToChannel = (username, client, channelId) => {
     });
 };
 
+const removeClientFromChannel = (user, channelId) => {
+    if (!channelId || !channels.has(channelId)) {
+        return;
+    }
+    const channel = channels.get(channelId);
+    channel.clients.delete(user.username);
+
+    const leftMessage = JSON.stringify({
+        eventType: 'onMessage',
+        channelId,
+        data: `${user.username} a quitté le groupe`,
+        sender: 'Admin',
+        timestamp: new Date()
+    });
+
+    channel.clients.forEach(client => {
+        trySendMessage({client}, leftMessage);
+    });
+};
 
 const updateAllChannelsList = () => {
     for (let [username, client] of clients) {
