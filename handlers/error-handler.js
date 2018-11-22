@@ -20,16 +20,20 @@ function usernameInUseError(ws) {
     tryClose(1008, 'Username already in use! Please reconnect using a different username');
 }
 
-function nonExistingChannel(ws, id) {
-    ws.send(simpleErrorMessage(`The channel with id ${id} does not existing`));
+function nonExistingChannelError(ws, id) {
+    trySendMessage(new User(null, ws), simpleErrorMessage(`The channel with id ${id} does not existing`));
 }
-
 function noMessageError(ws) {
-
+    trySendMessage(new User(null, ws), simpleErrorMessage(`You have to provide a message in the payload's data property...`));
+}
+function wrongWayAroundError(ws) {
+    trySendMessage(new User(null, ws), simpleErrorMessage(`You've got this the wrong way around, friend. I'm the one supposed to send you this event, not the other way around!`));
 }
 
 module.exports = {
     noUsernameError,
     usernameInUseError,
-    nonExistingChannel
+    nonExistingChannelError,
+    noMessageError,
+    wrongWayAroundError
 };

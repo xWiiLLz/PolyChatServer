@@ -8,7 +8,7 @@ const User = require('./models/user');
 const {trySendMessage, limitedLengthArray} = require('./handlers/utils');
 
 
-const { noUsernameError, usernameInUseError, nonExistingChannel } = require('./handlers/error-handler');
+const { noUsernameError, usernameInUseError, nonExistingChannelError, noMessageError, wrongWayAroundError } = require('./handlers/error-handler');
  
 const wss = new WebSocket.Server({ port: 3000, path: '/chatservice' });
  
@@ -24,7 +24,7 @@ let defaultChannels = [
 const onMessage = (payload, user) => {
     const {data, channelId} = payload;
     if (!channelId || !channels.has(channelId)) {
-        return nonExistingChannel(user.client, channelId);
+        return nonExistingChannelError(user.client, channelId);
     }
 
     if (!data) {
@@ -61,17 +61,18 @@ const onGetChannel = (payload, user) => {
     const {channelId} = payload;
 
     if (!channelId || !channels.has(channelId)) {
-        return nonExistingChannel(user.client, channelId);
+        return nonExistingChannelError(user.client, channelId);
     }
     emitOnGetChannel(channelId, user);
 };
 
-const onCreateChannel = (payload, client) => {
+const onCreateChannel = (payload, user) => {
 
 };
 
-const onJoinChannel = (payload, client) => {
-    
+const onJoinChannel = (payload, user) => {
+    const { channelId } = payload;
+    addClientToChannel(user.username, user.client, channelId);
 };
 
 
@@ -81,11 +82,11 @@ const onJoinChannel = (payload, client) => {
  * @param user - Object containing
  */
 const onLeaveChannel = (payload, user) => {
-    
+    // TODO
 };
 
 
-const updateChannelsList = (user) => {
+const updateChannelsList = (payload, user) => {
     const message = JSON.stringify(
         {
             eventType: 'updateChannelsList',
@@ -100,8 +101,9 @@ const updateChannelsList = (user) => {
     trySendMessage(user, message);
 };
 
-const onError = (payload, client) => {
-        
+const onError = (payload, user) => {
+    return wrongWayAroundError(user.client);
+
 };
 
 const supportedEvents = {
@@ -187,8 +189,8 @@ wss.on('connection', (ws, request) => {
 
 
 const addClientToChannel = (username, client, channelId) => {
-    if (!channels.has(channelId)) {
-        return nonExistingChannel(client, channelId);
+    if (!channelId || !channels.has(channelId)) {
+        return nonExistingChannelError(client, channelId);
     }
     const channel = channels.get(channelId);
     channel.clients.set(username, client);
@@ -197,6 +199,6 @@ const addClientToChannel = (username, client, channelId) => {
 
 const updateAllChannelsList = () => {
     for (let [username, client] of clients) {
-        updateChannelsList(new User(username, client));
+        updateChannelsList(null, new User(username, client));
     }
 };
