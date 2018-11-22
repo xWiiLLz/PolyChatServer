@@ -142,13 +142,17 @@ wss.on('connection', (ws, request) => {
 
     // We add the user to our list
     clients.set(username, ws);
+
     defaultChannels.filter(ch => ch.joinStatus).forEach(ch => {
         addClientToChannel(username, ws, ch.id);
-        emitOnGetChannel(ch.id, user);
     });
+
     console.log(`Client connected with username ${username}`);
     updateAllChannelsList();
-    
+
+    defaultChannels.filter(ch => ch.joinStatus).forEach(ch => {
+        emitOnGetChannel(ch.id, user);
+    });
 
 
     ws.on('close', function (ws, code, reason) {
