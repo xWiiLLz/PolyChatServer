@@ -194,6 +194,16 @@ const addClientToChannel = (username, client, channelId) => {
     }
     const channel = channels.get(channelId);
     channel.clients.set(username, client);
+    const joinedMessage = JSON.stringify({
+        eventType: 'onMessage',
+        channelId,
+        data: `${username} a rejoint le groupe`,
+        sender: 'Admin',
+        timestamp: new Date()
+    });
+    channel.clients.forEach(client => {
+       trySendMessage({client}, joinedMessage);
+    });
 };
 
 

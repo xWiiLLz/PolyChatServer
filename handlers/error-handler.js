@@ -3,7 +3,13 @@ const Channel = require('../models/channel');
 const User = require('../models/user');
 const {trySendMessage, tryClose} = require('./utils');
 
-let simpleErrorMessage = (message) => JSON.stringify(new Message('onError', null, message, 'Admin', new Date())); 
+let simpleErrorMessage = (message) => JSON.stringify({
+    eventType: 'onError',
+    channelId: null,
+    data: message,
+    sender: 'Admin',
+    timestamp: new Date()
+});
 
 
 /**
