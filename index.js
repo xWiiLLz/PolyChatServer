@@ -199,6 +199,11 @@ const addClientToChannel = (username, client, channelId) => {
         return nonExistingChannelError(client, channelId);
     }
     const channel = channels.get(channelId);
+
+    if (channel.clients.has(username)) {
+        return;
+    }
+
     channel.clients.set(username, client);
 
     const data = `${username} a rejoint le groupe`;
