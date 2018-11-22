@@ -144,6 +144,7 @@ const onError = (payload, user) => {
 
 const supportedEvents = {
     onMessage,
+    onGetChannel,
     onCreateChannel,
     onJoinChannel,
     onLeaveChannel,
