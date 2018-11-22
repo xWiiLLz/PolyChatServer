@@ -93,7 +93,13 @@ const onCreateChannel = (payload, user) => {
 
 const onJoinChannel = (payload, user) => {
     const { channelId } = payload;
-    addClientToChannel(user.username, user.client, channelId);
+    addClientToChannel(user, channelId);
+
+    // Notify all channel's users
+    const channel = channels.get(channelId);
+    for (let [username, client] of channel.clients) {
+        updateChannelsList(null, new User(username, client));
+    }
 };
 
 
@@ -108,7 +114,12 @@ const onLeaveChannel = (payload, user) => {
         return nonExistingChannelError(client, channelId);
     }
 
+    // Notify all channel's users
     removeClientFromChannel(user, channelId);
+    const channel = channels.get(channelId);
+    for (let [username, client] of channel.clients) {
+        updateChannelsList(null, new User(username, client));
+    }
 };
 
 
@@ -171,7 +182,7 @@ wss.on('connection', (ws, request) => {
     clients.set(username, ws);
 
     defaultChannels.filter(ch => ch.joinStatus).forEach(ch => {
-        addClientToChannel(username, ws, ch.id);
+        addClientToChannel(user, ch.id);
     });
 
     console.log(`Client connected with username ${username}`);
@@ -213,7 +224,8 @@ wss.on('connection', (ws, request) => {
 
 
 
-const addClientToChannel = (username, client, channelId) => {
+const addClientToChannel = (user, channelId) => {
+    const {username, client} = user;
     if (!channelId || !channels.has(channelId)) {
         return nonExistingChannelError(client, channelId);
     }
