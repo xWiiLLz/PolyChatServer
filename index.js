@@ -34,6 +34,38 @@ const onMessage = (payload, user) => {
 
     const targettedChannel = channels.get(channelId);
     const timestamp = new Date();
+
+    if (data.toLowerCase() === '!users') {
+        const message = JSON.stringify(
+        {
+            eventType: 'onMessage',
+            channelId,
+            data: `The channel ${targettedChannel.name} has ${targettedChannel.clients.size} users connected to it.
+            You are the only one viewer this message. Type !who to get a detailed list of its users.`,
+            sender: 'Admin',
+            timestamp
+        });
+        return trySendMessage(user, message);
+    }
+
+    if (data.toLowerCase() === '!who') {
+        let users = '';
+
+        for (let username of targettedChannel.clients.keys()) {
+            users +=` ${username},`;
+        }
+
+        const message = JSON.stringify(
+        {
+            eventType: 'onMessage',
+            channelId,
+            data: `The channel ${targettedChannel.name} has the following ${targettedChannel.clients.size} users connected to it:${users.slice(0, -1)}`,
+            sender: 'Admin',
+            timestamp
+        });
+        return trySendMessage(user, message);
+    }
+
     const message = JSON.stringify(
         {
             eventType: 'onMessage',
