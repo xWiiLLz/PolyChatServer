@@ -42,7 +42,7 @@ const onMessage = (payload, user) => {
             sender: user.username,
             timestamp
         });
-    targettedChannel.messages.push(new Message(null, channelId, data, user.username, timestamp));
+    targettedChannel.messages.push(new Message('onMessage', channelId, data, user.username, timestamp));
 
     for (let [username, client] of targettedChannel.clients) {
         trySendMessage(new User(username, client), message);
@@ -50,11 +50,17 @@ const onMessage = (payload, user) => {
 };
 
 const emitOnGetChannel = (channelId, user) => {
+    const channel = channels.get(channelId);
+    const mappedChannel = {
+        id: channelId,
+        name: channel.name,
+        messages: channel.messages.map
+    };
     const message = JSON.stringify(
         {
             eventType: 'onGetChannel',
             channelId,
-            data: channels.get(channelId).messages,
+            data: mappedChannel,
             sender: 'Admin',
             timestamp: new Date()
         });
@@ -189,11 +195,6 @@ wss.on('connection', (ws, request) => {
     console.log(`Client connected with username ${username}`);
     updateAllChannelsList();
 
-    defaultChannels.filter(ch => ch.joinStatus).forEach(ch => {
-        emitOnGetChannel(ch.id, user);
-    });
-
-
     ws.on('close', function (ws, code, reason) {
         console.log(`Client with username ${username} disconnected`);
         clients.delete(username);
@@ -247,7 +248,7 @@ const addClientToChannel = (user, channelId) => {
         sender: 'Admin',
         timestamp
     });
-    channel.messages.push(new Message(null, channelId, data, 'Admin', timestamp));
+    channel.messages.push(new Message('onMessage', channelId, data, 'Admin', timestamp));
     channel.clients.forEach(client => {
        trySendMessage({client}, joinedMessage);
     });
@@ -270,7 +271,7 @@ const removeClientFromChannel = (user, channelId) => {
         sender: 'Admin',
         timestamp
     });
-    channel.messages.push(new Message(null, channelId, data, 'Admin', timestamp));
+    channel.messages.push(new Message('onMessage', channelId, data, 'Admin', timestamp));
 
     channel.clients.forEach(client => {
         trySendMessage({client}, leftMessage);
