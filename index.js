@@ -228,12 +228,14 @@ wss.on('connection', (ws, request) => {
     // We add the user to our list
     clients.set(username, ws);
 
+    // Notify the connected user of channels
+    updateChannelsList(null, user);
     defaultChannels.filter(ch => ch.joinStatus).forEach(ch => {
         addClientToChannel(user, ch.id);
     });
 
     console.log(`Client connected with username ${username}`);
-    updateAllChannelsList();
+    updateAllChannelsListButClient(user);
 
     ws.on('close', function (ws, code, reason) {
         console.log(`Client with username ${username} disconnected`);
@@ -316,6 +318,15 @@ const removeClientFromChannel = (user, channelId) => {
     channel.clients.forEach(client => {
         trySendMessage({client}, leftMessage);
     });
+};
+
+const updateAllChannelsListButClient = (user) => {
+    for (let [username, client] of clients) {
+        if (username === user.username) {
+            continue;
+        }
+        updateChannelsList(null, new User(username, client));
+    }
 };
 
 const updateAllChannelsList = () => {
