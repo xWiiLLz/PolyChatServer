@@ -9,7 +9,7 @@ const User = require('./models/user');
 const {trySendMessage, limitedLengthArray} = require('./handlers/utils');
 
 
-const { noUsernameError, usernameInUseError, nonExistingChannelError, noMessageError, noChannelNameError, channelNameLengthError, wrongWayAroundError } = require('./handlers/error-handler');
+const { noUsernameError, usernameInUseError, reservedUsernameError, nonExistingChannelError, noMessageError, noChannelNameError, channelNameLengthError, wrongWayAroundError } = require('./handlers/error-handler');
  
 const wss = new WebSocket.Server({ port: 3000, path: '/chatservice' });
  
@@ -183,6 +183,10 @@ wss.on('connection', (ws, request) => {
     if (clients.has(username)) {
         // console.count('Username already in use... closing socket');
         return usernameInUseError(ws);
+    }
+
+    if (username.toLowerCase() === 'admin') {
+        return reservedUsernameError(ws);
     }
 
     // We add the user to our list

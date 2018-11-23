@@ -26,6 +26,12 @@ function usernameInUseError(ws) {
     tryClose(1008, 'Username already in use! Please reconnect using a different username');
 }
 
+function reservedUsernameError(ws) {
+    const message = 'That username is not valid! Please reconnect using a different username.';
+    trySendMessage(new User(null, ws), simpleErrorMessage(message));
+    tryClose(1008, message);
+}
+
 function nonExistingChannelError(ws, id) {
     trySendMessage(new User(null, ws), simpleErrorMessage(`The channel with id ${id} does not existing`));
 }
@@ -48,6 +54,7 @@ function wrongWayAroundError(ws) {
 module.exports = {
     noUsernameError,
     usernameInUseError,
+    reservedUsernameError,
     nonExistingChannelError,
     noMessageError,
     noChannelNameError,
