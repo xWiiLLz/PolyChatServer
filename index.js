@@ -54,7 +54,7 @@ const emitOnGetChannel = (channelId, user) => {
     const mappedChannel = {
         id: channelId,
         name: channel.name,
-        messages: channel.messages.map
+        messages: channel.messages
     };
     const message = JSON.stringify(
         {
