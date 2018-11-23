@@ -158,6 +158,7 @@ const onLeaveChannel = (payload, user) => {
 
     // Notify all channel's users
     removeClientFromChannel(user, channelId);
+    updateChannelsList(null, user);
     for (let [username, client] of channel.clients) {
         updateChannelsList(null, new User(username, client));
     }
