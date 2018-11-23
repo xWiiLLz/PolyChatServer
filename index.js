@@ -9,7 +9,7 @@ const User = require('./models/user');
 const {trySendMessage, limitedLengthArray} = require('./handlers/utils');
 
 
-const { noUsernameError, usernameInUseError, reservedUsernameError, nonExistingChannelError, noMessageError, noChannelNameError, channelNameLengthError, wrongWayAroundError } = require('./handlers/error-handler');
+const { noUsernameError, usernameInUseError, reservedUsernameError, nonExistingChannelError, cannotLeaveThisChannelError, noMessageError, noChannelNameError, channelNameLengthError, wrongWayAroundError } = require('./handlers/error-handler');
  
 const wss = new WebSocket.Server({ port: 3000, path: '/chatservice' });
  
@@ -117,12 +117,15 @@ const onJoinChannel = (payload, user) => {
 const onLeaveChannel = (payload, user) => {
     const { channelId } = payload;
     if (!channelId || !channels.has(channelId)) {
-        return nonExistingChannelError(client, channelId);
+        return nonExistingChannelError(user.client, channelId);
+    }
+    const channel = channels.get(channelId);
+    if (channel.name === 'Général') {
+        return cannotLeaveThisChannelError(user.client, channel.name);
     }
 
     // Notify all channel's users
     removeClientFromChannel(user, channelId);
-    const channel = channels.get(channelId);
     for (let [username, client] of channel.clients) {
         updateChannelsList(null, new User(username, client));
     }

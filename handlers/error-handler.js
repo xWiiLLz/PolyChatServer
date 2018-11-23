@@ -35,6 +35,11 @@ function reservedUsernameError(ws) {
 function nonExistingChannelError(ws, id) {
     trySendMessage(new User(null, ws), simpleErrorMessage(`The channel with id ${id} does not existing`));
 }
+
+function cannotLeaveThisChannelError(ws, name) {
+    trySendMessage(new User(null, ws), simpleErrorMessage(`I'm sorry, but you can't leave the channel "${name}"`));
+}
+
 function noMessageError(ws) {
     trySendMessage(new User(null, ws), simpleErrorMessage(`You have to provide a message in the payload's data property...`));
 }
@@ -56,6 +61,7 @@ module.exports = {
     usernameInUseError,
     reservedUsernameError,
     nonExistingChannelError,
+    cannotLeaveThisChannelError,
     noMessageError,
     noChannelNameError,
     channelNameLengthError,
