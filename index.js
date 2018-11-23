@@ -6,6 +6,7 @@ const uuidv1 = require('uuid/v1');
 const Channel = require('./models/channel');
 const Message = require('./models/message');
 const User = require('./models/user');
+const {commands} = require('./handlers/commands');
 const {trySendMessage, limitedLengthArray} = require('./handlers/utils');
 
 
@@ -35,12 +36,25 @@ const onMessage = (payload, user) => {
     const targettedChannel = channels.get(channelId);
     const timestamp = new Date();
 
+    if (commands.has(data.toLowerCase())) {
+        const command = commands.get(data.toLowerCase());
+        if (command && command.execute)
+            return command.execute(user, {
+                targettedChannel: {
+                    ...targettedChannel,
+                    channelId
+                },
+                defaultChannels,
+                channels,
+                updateAllChannelsList
+            });
+    }
     if (data.toLowerCase() === '!users') {
         const message = JSON.stringify(
         {
             eventType: 'onMessage',
             channelId,
-            data: `The channel ${targettedChannel.name} has ${targettedChannel.clients.size} users connected to it.
+            data: `The channel ${targettedChannel.name} has ${targettedChannel.clients.size} user${targettedChannel.clients.size > 1 ? 's' : ''} connected to it.\n
             You are the only one viewer this message. Type !who to get a detailed list of its users.`,
             sender: 'Admin',
             timestamp
@@ -48,23 +62,23 @@ const onMessage = (payload, user) => {
         return trySendMessage(user, message);
     }
 
-    if (data.toLowerCase() === '!who') {
-        let users = '';
-
-        for (let username of targettedChannel.clients.keys()) {
-            users +=` ${username},`;
-        }
-
-        const message = JSON.stringify(
-        {
-            eventType: 'onMessage',
-            channelId,
-            data: `The channel ${targettedChannel.name} has the following ${targettedChannel.clients.size} users connected to it:${users.slice(0, -1)}`,
-            sender: 'Admin',
-            timestamp
-        });
-        return trySendMessage(user, message);
-    }
+    // if (data.toLowerCase() === '!who') {
+    //     let users = '';
+    //
+    //     for (let username of targettedChannel.clients.keys()) {
+    //         users +=` ${username},`;
+    //     }
+    //
+    //     const message = JSON.stringify(
+    //     {
+    //         eventType: 'onMessage',
+    //         channelId,
+    //         data: `The channel ${targettedChannel.name} has the following ${targettedChannel.clients.size} users connected to it:${users.slice(0, -1)}`,
+    //         sender: 'Admin',
+    //         timestamp
+    //     });
+    //     return trySendMessage(user, message);
+    // }
 
     const message = JSON.stringify(
         {
@@ -211,6 +225,7 @@ let channels = new Map(defaultChannels.map(ch => [
 wss.on('connection', (ws, request) => {
     // Initialization
     const { url } = request;
+    console.dir(request);
     // console.count(`Client trying to connect with url ${url}`);
     const parsedUrl = queryString.parseUrl(url);
     
@@ -236,6 +251,22 @@ wss.on('connection', (ws, request) => {
 
     // Notify the connected user of channels
     updateChannelsList(null, user);
+
+    // Execute the welcome command
+    const welcomeCommand = commands.get('!welcome');
+    if (welcomeCommand && welcomeCommand.execute) {
+        const general = channels.get(defaultChannels[0].id);
+        welcomeCommand.execute(user, {
+            targettedChannel: {
+                ...general,
+                channelId: general.id
+            },
+            defaultChannels,
+            channels,
+            updateAllChannelsList
+        });
+    }
+
     defaultChannels.filter(ch => ch.joinStatus).forEach(ch => {
         addClientToChannel(user, ch.id);
     });
@@ -263,7 +294,8 @@ wss.on('connection', (ws, request) => {
                 supportedEvents[eventType](deserializedEvent, user);
             }
         } catch (e) {
-            console.log('An unexpected error occured in the message receiving deserialization routine');
+            console.log(`An unexpected error occured in the message receiving deserialization routine.\n
+                        details: ${e}`);
         }
     });
 
@@ -339,4 +371,8 @@ const updateAllChannelsList = () => {
     for (let [username, client] of clients) {
         updateChannelsList(null, new User(username, client));
     }
+};
+
+module.exports = {
+    updateAllChannelsList
 };
