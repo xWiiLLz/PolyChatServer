@@ -4,13 +4,18 @@
   "description": "A simple implementation of the PolyChat Server",
   "main": "index.js",
   "scripts": {
+    "log": "./node_modules/.bin/pm2 log",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon ./index.js",
-    "serve": "node ./index.js"
+    "start": "yarn run watch && yarn run log",
+    "stop": "./node_modules/.bin/pm2 stop all",
+    "dev": "nodemon ./index.js",
+    "monit": "./node_modules/.bin/pm2 monit",
+    "watch": "./node_modules/.bin/pm2 start ./index.js --watch"
   },
   "author": "xWiiLLz",
   "license": "ISC",
   "dependencies": {
+    "pm2": "^3.2.2",
     "query-string": "^6.2.0",
     "uuid": "^3.3.2",
     "ws": "^6.1.2"
