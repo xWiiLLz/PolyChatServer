@@ -52,6 +52,10 @@ function channelNameLengthError(ws) {
     trySendMessage(new User(null, ws), simpleErrorMessage(`The channel's name must be between 5 and 20 characters!`));
 }
 
+function channelAlreadyExistError(ws, name) {
+    trySendMessage(new User(null, ws), simpleErrorMessage(`The channel with name "${name}" already exists.`));
+}
+
 function wrongWayAroundError(ws) {
     trySendMessage(new User(null, ws), simpleErrorMessage(`You've got this the wrong way around, friend. I'm the one supposed to send you this event, not the other way around!`));
 }
@@ -65,5 +69,6 @@ module.exports = {
     noMessageError,
     noChannelNameError,
     channelNameLengthError,
+    channelAlreadyExistError,
     wrongWayAroundError
 };

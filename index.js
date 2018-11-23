@@ -9,7 +9,7 @@ const User = require('./models/user');
 const {trySendMessage, limitedLengthArray} = require('./handlers/utils');
 
 
-const { noUsernameError, usernameInUseError, reservedUsernameError, nonExistingChannelError, cannotLeaveThisChannelError, noMessageError, noChannelNameError, channelNameLengthError, wrongWayAroundError } = require('./handlers/error-handler');
+const { noUsernameError, usernameInUseError, reservedUsernameError, nonExistingChannelError, cannotLeaveThisChannelError, noMessageError, noChannelNameError, channelNameLengthError, channelAlreadyExistError, wrongWayAroundError } = require('./handlers/error-handler');
  
 const wss = new WebSocket.Server({ port: 3000, path: '/chatservice' });
  
@@ -116,6 +116,12 @@ const onCreateChannel = (payload, user) => {
 
     if (data.length < 5 || data.length > 20) {
         return channelNameLengthError(user.client);
+    }
+
+    for (let [channelId, channel] of channels) {
+        if (channel.name === data) {
+            return channelAlreadyExistError(user.client, channel.name);
+        }
     }
 
     let uuid;
