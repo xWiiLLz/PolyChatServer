@@ -161,8 +161,8 @@ const updateChannelsList = (payload, user) => {
             eventType: 'updateChannelsList',
             channelId: null,
             data: Array.from(channels).map(x => {
-                const {id, name, joinStatus, messages, clients} = x[1];
-                return {id, name, joinStatus: clients.has(user.username), messages, numberOfUsers: clients.size}
+                const {id, name, clients} = x[1];
+                return {id, name, joinStatus: clients.has(user.username), messages: null, numberOfUsers: clients.size}
             }),
             sender: 'Admin',
             timestamp: new Date()
