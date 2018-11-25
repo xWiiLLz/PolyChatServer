@@ -18,18 +18,18 @@ let simpleErrorMessage = (message) => JSON.stringify({
  */
 function noUsernameError(ws) {
     trySendMessage(new User(null, ws), simpleErrorMessage('Please provide a username in the request\'s query parameters'));
-    tryClose(1008, 'Please provide a username in the request\'s query parameters');
+    tryClose(ws, 1008, 'Please provide a username in the request\'s query parameters');
 }
 
 function usernameInUseError(ws) {
     trySendMessage(new User(null, ws), simpleErrorMessage('Username already in use! Please reconnect using a different username'));
-    tryClose(1008, 'Username already in use! Please reconnect using a different username');
+    tryClose(ws, 1008, 'Username already in use! Please reconnect using a different username');
 }
 
 function reservedUsernameError(ws) {
     const message = 'That username is not valid! Please reconnect using a different username.';
     trySendMessage(new User(null, ws), simpleErrorMessage(message));
-    tryClose(1008, message);
+    tryClose(ws, 1008, message);
 }
 
 function nonExistingChannelError(ws, id) {

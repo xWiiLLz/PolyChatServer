@@ -7,7 +7,7 @@ const Channel = require('./models/channel');
 const Message = require('./models/message');
 const User = require('./models/user');
 const {commands} = require('./handlers/commands');
-const {trySendMessage, limitedLengthArray} = require('./handlers/utils');
+const {trySendMessage, tryClose, limitedLengthArray} = require('./handlers/utils');
 
 
 const { noUsernameError, usernameInUseError, reservedUsernameError, nonExistingChannelError, cannotLeaveThisChannelError, noMessageError, noChannelNameError, channelNameLengthError, channelAlreadyExistError, wrongWayAroundError } = require('./handlers/error-handler');
@@ -119,12 +119,32 @@ const onCreateChannel = (payload, user) => {
     updateAllChannelsList();
 };
 
+let spammers = new Map();
+
 const onJoinChannel = (payload, user) => {
     const { channelId } = payload;
+
+    if (!channelId || !channels.has(channelId)) {
+        return nonExistingChannelError(user.client, channelId);
+    }
+
+    const channel = channels.get(channelId);
+    if (channel && channel.clients.has(user.username)) {
+        console.log(`User ${user.username} tried to join channel that he already joined...`);
+        let count = 0;
+        if (spammers.has(user.username)) {
+            count = spammers.get(user.username);
+        }
+        spammers.set(user.username, ++count);
+        if (count > 5) {
+            spammers.set(user.username, 0);
+            tryClose(user.client, 1008, 'Please don\'t spam the server.');
+        }
+        return;
+    }
     addClientToChannel(user, channelId);
 
     // Notify all channel's users
-    const channel = channels.get(channelId);
     for (let [username, client] of channel.clients) {
         updateChannelsList(null, new User(username, client));
     }
@@ -192,10 +212,13 @@ let channels = new Map(defaultChannels.map(ch => [
     }
 ]));
 
+let ips = new Map();
+
 wss.on('connection', (ws, request) => {
     // Initialization
+
+
     const { url } = request;
-    console.dir(request);
     // console.count(`Client trying to connect with url ${url}`);
     const parsedUrl = queryString.parseUrl(url);
     
@@ -205,6 +228,18 @@ wss.on('connection', (ws, request) => {
     if (!username) {
         // console.count('No username was provided... closing socket');
         return noUsernameError(ws);
+    }
+
+
+    try {
+        const ip = ws._socket.remoteAddress;
+        console.log(`User ${username} comes from ${ip}`);
+        ips.set(username, ip);
+        console.log('Updated ips table:\n');
+        console.dir(ips);
+    } catch (e) {
+        // w/e
+
     }
 
     if (clients.has(username)) {
@@ -278,9 +313,7 @@ wss.on('connection', (ws, request) => {
 
 const addClientToChannel = (user, channelId) => {
     const {username, client} = user;
-    if (!channelId || !channels.has(channelId)) {
-        return nonExistingChannelError(client, channelId);
-    }
+
     const channel = channels.get(channelId);
 
     if (channel.clients.has(username)) {
