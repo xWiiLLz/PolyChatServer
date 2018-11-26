@@ -46,7 +46,8 @@ const onMessage = (payload, user) => {
                 },
                 defaultChannels,
                 channels,
-                updateAllChannelsList
+                updateAllChannelsList,
+                userPreferences
             });
     }
 
@@ -213,6 +214,7 @@ let channels = new Map(defaultChannels.map(ch => [
 ]));
 
 let ips = new Map();
+let userPreferences = new Map();
 
 wss.on('connection', (ws, request) => {
     // Initialization
@@ -268,7 +270,8 @@ wss.on('connection', (ws, request) => {
             },
             defaultChannels,
             channels,
-            updateAllChannelsList
+            updateAllChannelsList,
+            userPreferences
         });
     }
 
@@ -332,9 +335,15 @@ const addClientToChannel = (user, channelId) => {
         timestamp
     });
     channel.messages.push(new Message('onMessage', channelId, data, 'Admin', timestamp));
-    channel.clients.forEach(client => {
-       trySendMessage({client}, joinedMessage);
-    });
+    
+    for (let [username, client] of channel.clients) {
+        if (userPreferences.has(username)) {
+            const {ignoreUserUpdates} = userPreferences.get(username);
+            if (ignoreUserUpdates)
+                continue;
+        } 
+        trySendMessage({client}, joinedMessage);
+    }
 };
 
 const removeClientFromChannel = (user, channelId) => {
@@ -356,9 +365,14 @@ const removeClientFromChannel = (user, channelId) => {
     });
     channel.messages.push(new Message('onMessage', channelId, data, 'Admin', timestamp));
 
-    channel.clients.forEach(client => {
+    for (let [username, client] of channel.clients) {
+        if (userPreferences.has(username)) {
+            const {ignoreUserUpdates} = userPreferences.get(username);
+            if (ignoreUserUpdates)
+                continue;
+        } 
         trySendMessage({client}, leftMessage);
-    });
+    }
 };
 
 const updateAllChannelsListButClient = (user) => {

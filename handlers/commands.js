@@ -169,6 +169,70 @@ class ClearChannelsCommand extends Command {
     }
 }
 
+class MuteChannelUpdatesCommand extends Command{
+    constructor() {
+        super("Mutes the join/leave messages for a user.");
+    }
+
+    /**
+     * 
+     * @param {User} user 
+     * @param {*} params 
+     */
+    execute(user, params) {
+        const { targettedChannel, userPreferences } = params;
+        const { username } = user;
+
+        userPreferences.set(username, {
+            ...userPreferences.get(username),
+            ignoreUserUpdates: true,
+        });
+
+        const timestamp = new Date();
+        const message = JSON.stringify(
+            {
+                eventType: 'onMessage',
+                channelId: targettedChannel.channelId,
+                data: `Join/leave messages are now muted. Use !unmute-channel-updates to unmute.`,
+                sender: 'Admin',
+                timestamp
+            });
+        trySendMessage(user, message);
+    }
+}
+
+class UnmuteChannelUpdatesCommand extends Command{
+    constructor() {
+        super("Unmutes the join/leave messages for a user.");
+    }
+
+    /**
+     * 
+     * @param {User} user 
+     * @param {*} params 
+     */
+    execute(user, params) {
+        const { targettedChannel, userPreferences } = params;
+        const { username } = user;
+
+        userPreferences.set(username, {
+            ...userPreferences.get(username),
+            ignoreUserUpdates: false,
+        });
+
+        const timestamp = new Date();
+        const message = JSON.stringify(
+            {
+                eventType: 'onMessage',
+                channelId: targettedChannel.channelId,
+                data: `Join/leave messages are now unmuted. Use !mute-channel-updates to mute.`,
+                sender: 'Admin',
+                timestamp
+            });
+        trySendMessage(user, message);
+    }
+}
+
 
 const commands = new Map([
     ['!welcome', new WelcomeCommand()],
@@ -176,7 +240,9 @@ const commands = new Map([
     ['!help-html', new HelpHtmlCommand()],
     ['!users', new UsersCommand()],
     ['!who', new ListUsersCommand()],
-    ['!clean', new ClearChannelsCommand()]
+    ['!clean', new ClearChannelsCommand()],
+    ['!mute-channel-updates', new MuteChannelUpdatesCommand()],
+    ['!unmute-channel-updates', new UnmuteChannelUpdatesCommand()]
 ]);
 
 module.exports = {
