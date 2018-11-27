@@ -183,8 +183,9 @@ const onJoinVocalChannel = (payload, user) => {
     }
 
     const channel = channels.get(channelId);
-    if (channel && channel.vocalClients.has(user.username)) {
-        console.log(`User ${user.username} tried to join vocal channel that he already joined...`);
+    if (channel && channel.vocalClients.has(user.username) && signal) {
+        console.log(`Received post-connection signal ${signal}`);
+        channel.vocalClients.get(user.userrname).peer.signal(signal);
         return;
     }
 
