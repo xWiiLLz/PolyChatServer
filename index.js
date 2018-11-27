@@ -428,7 +428,7 @@ const removeClientFromChannel = (user, channelId) => {
             const {ignoreUserUpdates} = userPreferences.get(username);
             if (ignoreUserUpdates)
                 continue;
-        } 
+        }
         trySendMessage({client}, leftMessage);
     }
 };
@@ -450,6 +450,14 @@ const addClientToVocalChannel = (signal, user, channelId) => {
 
     peer.on('signal', (function(signal) {
         console.log('received signal', signal);
+
+        const message = JSON.stringify({
+            eventType: 'onPeerSignal',
+            channelId,
+            data: signal,
+            sender: 'Admin'
+        });
+        trySendMessage(user, message);
     }).bind(this));
 
     peer.on('stream', function(stream) {
