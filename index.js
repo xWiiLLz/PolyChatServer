@@ -444,7 +444,7 @@ const addClientToVocalChannel = (incomingPeer, user, channelId) => {
 
 
 
-    const peer = new Peer({initiator: false, wrtc, stream: true});
+    const peer = new Peer({initiator: false, wrtc});
 
     incomingPeer.on('signal', function(data) {
         console.log('INITIATED CONNECTION');
