@@ -33,7 +33,7 @@ function reservedUsernameError(ws) {
 }
 
 function nonExistingChannelError(ws, id) {
-    trySendMessage(new User(null, ws), simpleErrorMessage(`The channel with id ${id} does not existing`));
+    trySendMessage(new User(null, ws), simpleErrorMessage(`The channel with id ${id} does not exist`));
 }
 
 function cannotLeaveThisChannelError(ws, name) {
