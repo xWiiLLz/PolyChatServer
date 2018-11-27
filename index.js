@@ -177,7 +177,7 @@ const onLeaveChannel = (payload, user) => {
 };
 
 const onJoinVocalChannel = (payload, user) => {
-    const { channelId, data: peer } = payload;
+    const { channelId, data: signal } = payload;
     if (!channelId || !channels.has(channelId)) {
         return nonExistingChannelError(user.client, channelId);
     }
@@ -188,7 +188,7 @@ const onJoinVocalChannel = (payload, user) => {
         return;
     }
 
-    addClientToVocalChannel(peer, user, channelId);
+    addClientToVocalChannel(signal, user, channelId);
 };
 
 const onLeaveVocalChannel = (payload, user) => {
@@ -433,7 +433,8 @@ const removeClientFromChannel = (user, channelId) => {
     }
 };
 
-const addClientToVocalChannel = (incomingPeer, user, channelId) => {
+const addClientToVocalChannel = (signal, user, channelId) => {
+    console.log(`RECEIVED SIGNAL : ${signal}`)
     const {username, client} = user;
 
     const channel = channels.get(channelId);
@@ -445,11 +446,7 @@ const addClientToVocalChannel = (incomingPeer, user, channelId) => {
 
 
     const peer = new Peer({initiator: false, wrtc});
-
-    incomingPeer.on('signal', function(data) {
-        console.log('INITIATED CONNECTION');
-       peer.signal(data);
-    });
+    peer.signal(signal);
 
     peer.on('signal', (function(signal) {
         console.log('received signal', signal);
