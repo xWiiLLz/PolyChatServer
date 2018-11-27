@@ -17,6 +17,7 @@
   "dependencies": {
     "pm2": "^3.2.2",
     "query-string": "^6.2.0",
+    "simple-peer": "^9.1.2",
     "uuid": "^3.3.2",
     "ws": "^6.1.2"
   },
