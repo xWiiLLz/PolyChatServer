@@ -487,10 +487,10 @@ const addClientToVocalChannel = (data, user, channelId) => {
         }
 
         for (let [username, {peer}] of channel.vocalClients) {
-            // if (username === user.username) {
-            //     console.log('Skipping ourself');
-            //     continue;
-            // }
+            if (username === user.username) {
+                console.log('Skipping ourself');
+                continue;
+            }
             peer.addStream(stream);
             console.log(`Added ${user.username}'s vocal stream to user "${username}"`);
         }
