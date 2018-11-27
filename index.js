@@ -177,14 +177,17 @@ const onLeaveChannel = (payload, user) => {
 };
 
 const onJoinVocalChannel = (payload, user) => {
-    const { channelId, data: signal } = payload;
+    const {
+        channelId,
+        data
+    } = payload;
     if (!channelId || !channels.has(channelId)) {
         return nonExistingChannelError(user.client, channelId);
     }
 
     const channel = channels.get(channelId);
     if (channel && channel.vocalClients.has(user.username) && signal) {
-        console.log(`Received post-connection signal ${signal}`);
+        // console.log(`Received post-connection signal ${signal}`);
         const {peer} = channel.vocalClients.get(user.username);
         if (!peer) {
             console.error(`Could not find the peer for username ${user.username}`);
@@ -194,7 +197,7 @@ const onJoinVocalChannel = (payload, user) => {
         return;
     }
 
-    addClientToVocalChannel(signal, user, channelId);
+    addClientToVocalChannel(data, user, channelId);
 };
 
 const onLeaveVocalChannel = (payload, user) => {
@@ -439,7 +442,14 @@ const removeClientFromChannel = (user, channelId) => {
     }
 };
 
-const addClientToVocalChannel = (signal, user, channelId) => {
+/**
+ *
+ * @param {signal, streamId} data
+ * @param user
+ * @param channelId
+ */
+const addClientToVocalChannel = (data, user, channelId) => {
+    const {signal, streamId} = data;
     console.log(`RECEIVED SIGNAL : ${signal}`);
     const {username, client} = user;
 
@@ -467,6 +477,8 @@ const addClientToVocalChannel = (signal, user, channelId) => {
     }).bind(this));
 
     peer.on('stream', function(stream) {
+        if (peer.streams.length)
+
         for (let [username, {peer}] of channel.vocalClients) {
             if (username === user.username) {
                 console.log('Skipping ourself');
@@ -478,12 +490,32 @@ const addClientToVocalChannel = (signal, user, channelId) => {
     });
 
     peer.on('connect', function() {
-        console.log('We got connected');
+        const message = JSON.stringify({
+            eventType: 'onJoinedVoiceChannel',
+            channelId,
+            sender: 'Admin'
+        });
+        trySendMessage(user, message);
+
+        const {vocalClients} = channels.get(channelId);
+
+        let availableStreams = [];
+
+        for (let [username, vocalClient] of vocalClients) {
+            availableStreams = [
+                ...availableStreams,
+                ...vocalClient.peer.streams
+            ];
+        }
+        availableStreams.filter(s => peer.streams.findIndex(pS => pS.id === s.id) === -1).forEach(s => {
+            peer.streams.addStream(s);
+        });
     });
 
     channel.vocalClients.set(username, {
         client,
-        peer
+        peer,
+        streamId
     });
 };
 
