@@ -116,7 +116,8 @@ const onCreateChannel = (payload, user) => {
     } while(channels.has(uuid));
     channels.set(uuid, {
         ...new Channel(uuid, data, true, limitedLengthArray(100)),
-        clients: new Map()
+        clients: new Map(),
+        vocalClients: new Map()
     });
     updateAllChannelsList();
 };
@@ -515,9 +516,6 @@ const addClientToVocalChannel = (data, user, channelId) => {
                 console.log(`Adding existing stream with id ${vC.streamId} to newly connected user "${username}"`);
                 peer.addStream(vC.stream);
             });
-            // toAdd.forEach(s => {
-            //     peer.streams.addStream(s);
-            // });
         });
 
         peer.on('error', function(e) {console.error(e);});
