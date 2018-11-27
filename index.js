@@ -175,6 +175,56 @@ const onLeaveChannel = (payload, user) => {
     }
 };
 
+const onJoinVocalChannel = (payload, user) => {
+    const { channelId } = payload;
+    if (!channelId || !channels.has(channelId)) {
+        return nonExistingChannelError(user.client, channelId);
+    }
+
+    const channel = channels.get(channelId);
+    if (channel && channel.vocalClients.has(user.username)) {
+        console.log(`User ${user.username} tried to join vocal channel that he already joined...`);
+        return;
+    }
+
+    addClientToVocalChannel(user, channelId);
+};
+
+const onLeaveVocalChannel = (payload, user) => {
+    const { channelId } = payload;
+    if (!channelId || !channels.has(channelId)) {
+        return nonExistingChannelError(user.client, channelId);
+    }
+
+    removeClientFromVocalChannel(user, channelId);
+};
+
+const onVoice = (payload, user) => {
+    const {data, channelId} = payload;
+    if (!channelId || !channels.has(channelId)) {
+        return nonExistingChannelError(user.client, channelId);
+    }
+
+    if (!data) {
+        return noMessageError(user.client);
+    }
+
+    const targetedChannel = channels.get(channelId);
+    const timestamp = new Date();
+
+    const message = JSON.stringify(
+        {
+            eventType: 'onVoice',
+            channelId,
+            data,
+            sender: user.username,
+            timestamp
+        });
+
+    for (let [username, client] of targetedChannel.vocalClients) {
+        trySendMessage(new User(username, client), message);
+    }
+};
 
 const updateChannelsList = (payload, user) => {
     const message = JSON.stringify(
@@ -202,14 +252,18 @@ const supportedEvents = {
     onJoinChannel,
     onLeaveChannel,
     updateChannelsList,
-    onError
+    onError,
+    onJoinVocalChannel,
+    onLeaveVocalChannel,
+    onVoice
 };
 
 let channels = new Map(defaultChannels.map(ch => [
     ch.id, 
     {
         ...ch,
-        clients: new Map()
+        clients: new Map(),
+        vocalClients: new Map()
     }
 ]));
 
@@ -288,6 +342,9 @@ wss.on('connection', (ws, request) => {
         for (let [channelId, channel] of channels) {
             if (channel.clients.has(username)) {
                 removeClientFromChannel(user, channelId);
+            }
+            if (channel.vocalClients.has(username)) {
+                removeClientFromVocalChannel(user, channelId);
             }
         }
         updateAllChannelsList();
@@ -374,6 +431,28 @@ const removeClientFromChannel = (user, channelId) => {
         trySendMessage({client}, leftMessage);
     }
 };
+
+const addClientToVocalChannel = (user, channelId) => {
+    const {username, client} = user;
+
+    const channel = channels.get(channelId);
+
+    if (channel.vocalClients.has(username)) {
+        return;
+    }
+
+    channel.vocalClients.set(username, client);
+};
+
+const removeClientFromVocalChannel = (user, channelId) => {
+    if (!channelId || !channels.has(channelId)) {
+        return;
+    }
+    const channel = channels.get(channelId);
+    channel.vocalClients.delete(user.username);
+};
+
+
 
 const updateAllChannelsListButClient = (user) => {
     for (let [username, client] of clients) {
