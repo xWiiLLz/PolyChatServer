@@ -465,7 +465,7 @@ const addClientToVocalChannel = (data, user, channelId) => {
     peer.signal(signal);
 
     peer.on('signal', (function(signal) {
-        console.log('received signal', signal);
+        // console.log('received signal', signal);
 
         const message = JSON.stringify({
             eventType: 'onPeerSignal',
@@ -477,8 +477,6 @@ const addClientToVocalChannel = (data, user, channelId) => {
     }).bind(this));
 
     peer.on('stream', function(stream) {
-        if (peer.streams.length)
-
         for (let [username, {peer}] of channel.vocalClients) {
             if (username === user.username) {
                 console.log('Skipping ourself');
@@ -507,7 +505,10 @@ const addClientToVocalChannel = (data, user, channelId) => {
                 ...vocalClient.peer.streams
             ];
         }
-        availableStreams.filter(s => peer.streams.findIndex(pS => pS.id === s.id) === -1).forEach(s => {
+        const toAdd = availableStreams.filter(s => peer.streams.findIndex(pS => pS.id === s.id) === -1);
+        console.log(`Adding ${toAdd.length} streams to peer with username "${user.username}"`);
+
+        toAdd.forEach(s => {
             peer.streams.addStream(s);
         });
     });
