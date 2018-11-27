@@ -185,7 +185,12 @@ const onJoinVocalChannel = (payload, user) => {
     const channel = channels.get(channelId);
     if (channel && channel.vocalClients.has(user.username) && signal) {
         console.log(`Received post-connection signal ${signal}`);
-        channel.vocalClients.get(user.userrname).peer.signal(signal);
+        const {peer} = channel.vocalClients.get(user.username);
+        if (!peer) {
+            console.error(`Could not find the peer for username ${user.username}`);
+            return;
+        }
+        peer.signal(signal);
         return;
     }
 
