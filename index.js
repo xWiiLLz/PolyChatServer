@@ -8,7 +8,8 @@ const Message = require('./models/message');
 const User = require('./models/user');
 const {commands} = require('./handlers/commands');
 const {trySendMessage, tryClose, limitedLengthArray} = require('./handlers/utils');
-
+const Peer = require('simple-peer');
+const wrtc = require('wrtc');
 
 const { noUsernameError, usernameInUseError, reservedUsernameError, nonExistingChannelError, cannotLeaveThisChannelError, noMessageError, noChannelNameError, channelNameLengthError, channelAlreadyExistError, wrongWayAroundError } = require('./handlers/error-handler');
  
@@ -176,7 +177,7 @@ const onLeaveChannel = (payload, user) => {
 };
 
 const onJoinVocalChannel = (payload, user) => {
-    const { channelId } = payload;
+    const { channelId, data: peer } = payload;
     if (!channelId || !channels.has(channelId)) {
         return nonExistingChannelError(user.client, channelId);
     }
@@ -187,7 +188,7 @@ const onJoinVocalChannel = (payload, user) => {
         return;
     }
 
-    addClientToVocalChannel(user, channelId);
+    addClientToVocalChannel(peer, user, channelId);
 };
 
 const onLeaveVocalChannel = (payload, user) => {
@@ -432,7 +433,7 @@ const removeClientFromChannel = (user, channelId) => {
     }
 };
 
-const addClientToVocalChannel = (user, channelId) => {
+const addClientToVocalChannel = (incomingPeer, user, channelId) => {
     const {username, client} = user;
 
     const channel = channels.get(channelId);
@@ -441,7 +442,28 @@ const addClientToVocalChannel = (user, channelId) => {
         return;
     }
 
-    channel.vocalClients.set(username, client);
+
+
+    const peer = new Peer({initiator: false, wrtc, stream: true});
+
+    incomingPeer.on('signal', function(data) {
+        console.log('INITIATED CONNECTION');
+       peer.signal(data);
+    });
+
+    peer.on('signal', (function(signal) {
+        console.log('received signal', signal);
+    }).bind(this));
+
+    peer.on('stream', function(stream) {
+       console.log('received stream');
+       console.log(stream);
+    });
+
+    channel.vocalClients.set(username, {
+        client,
+        peer
+    });
 };
 
 const removeClientFromVocalChannel = (user, channelId) => {
@@ -449,6 +471,12 @@ const removeClientFromVocalChannel = (user, channelId) => {
         return;
     }
     const channel = channels.get(channelId);
+    const vocalClient = channel.vocalClients.get(user.username);
+    if (!vocalClient) {
+        return;
+    }
+
+    vocalClient.peer.destroy();
     channel.vocalClients.delete(user.username);
 };
 
