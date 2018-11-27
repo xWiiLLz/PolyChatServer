@@ -477,6 +477,10 @@ const addClientToVocalChannel = (signal, user, channelId) => {
         }
     });
 
+    peer.on('connect', function() {
+        console.log('We got connected');
+    });
+
     channel.vocalClients.set(username, {
         client,
         peer
