@@ -12,7 +12,7 @@ const {trySendMessage, tryClose, limitedLengthArray} = require('./handlers/utils
 
 const { noUsernameError, usernameInUseError, reservedUsernameError, nonExistingChannelError, cannotLeaveThisChannelError, noMessageError, noChannelNameError, channelNameLengthError, channelAlreadyExistError, wrongWayAroundError } = require('./handlers/error-handler');
  
-const wss = new WebSocket.Server({ port: 3000, path: '/chatservice' });
+const wss = new WebSocket.Server({ port: 3005, path: '/chatservice' });
  
 let clients = new Map();
 
