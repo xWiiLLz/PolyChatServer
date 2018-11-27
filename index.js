@@ -440,7 +440,7 @@ const removeClientFromChannel = (user, channelId) => {
 };
 
 const addClientToVocalChannel = (signal, user, channelId) => {
-    console.log(`RECEIVED SIGNAL : ${signal}`)
+    console.log(`RECEIVED SIGNAL : ${signal}`);
     const {username, client} = user;
 
     const channel = channels.get(channelId);
@@ -467,8 +467,14 @@ const addClientToVocalChannel = (signal, user, channelId) => {
     }).bind(this));
 
     peer.on('stream', function(stream) {
-       console.log('received stream');
-       console.log(stream);
+        for (let [username, {peer}] of channel.vocalClients) {
+            if (username === user.username) {
+                console.log('Skipping ourself');
+                continue;
+            }
+            peer.addStream(stream);
+            console.log(`Added ${user.username}'s vocal stream to user "${username}"`);
+        }
     });
 
     channel.vocalClients.set(username, {
