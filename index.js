@@ -361,7 +361,7 @@ wss.on('connection', (ws, request) => {
     });
 
     ws.on('message', (event) => {
-        console.log(`Received message: ${event}`);
+        // console.log(`Received message: ${event}`);
         try {
             const deserializedEvent = JSON.parse(event);
             const {eventType} = deserializedEvent;
@@ -450,7 +450,7 @@ const removeClientFromChannel = (user, channelId) => {
  */
 const addClientToVocalChannel = (data, user, channelId) => {
     const {signal, streamId} = data;
-    console.log(`RECEIVED SIGNAL : ${signal}`);
+    // console.log(`RECEIVED SIGNAL : ${signal}`);
     const {username, client} = user;
 
     const channel = channels.get(channelId);
@@ -477,11 +477,20 @@ const addClientToVocalChannel = (data, user, channelId) => {
     }).bind(this));
 
     peer.on('stream', function(stream) {
+        // Set self
+        const ownVocalClient = channel.vocalClients.get(username);
+        if (ownVocalClient) {
+            channel.vocalClients.set(username, {
+                ...ownVocalClient,
+                stream
+            });
+        }
+
         for (let [username, {peer}] of channel.vocalClients) {
-            if (username === user.username) {
-                console.log('Skipping ourself');
-                continue;
-            }
+            // if (username === user.username) {
+            //     console.log('Skipping ourself');
+            //     continue;
+            // }
             peer.addStream(stream);
             console.log(`Added ${user.username}'s vocal stream to user "${username}"`);
         }
@@ -497,26 +506,36 @@ const addClientToVocalChannel = (data, user, channelId) => {
 
         const {vocalClients} = channels.get(channelId);
 
-        let availableStreams = [];
+        // let availableStreams = [];
+        //
+        // for (let [username, vocalClient] of vocalClients) {
+        //     console.log(`iterating vocalClient`);
+        //     availableStreams = [
+        //         ...availableStreams,
+        //         ...vocalClient.peer.streams
+        //     ];
+        // }
+        // const toAdd = availableStreams.filter(s => peer.streams.findIndex(pS => pS.id === s.id) === -1);
+        // console.log(`Adding ${toAdd.length} streams to peer with username "${user.username}"`);
 
-        for (let [username, vocalClient] of vocalClients) {
-            availableStreams = [
-                ...availableStreams,
-                ...vocalClient.peer.streams
-            ];
-        }
-        const toAdd = availableStreams.filter(s => peer.streams.findIndex(pS => pS.id === s.id) === -1);
-        console.log(`Adding ${toAdd.length} streams to peer with username "${user.username}"`);
-
-        toAdd.forEach(s => {
-            peer.streams.addStream(s);
+        vocalClients.forEach(vC => {
+           if (vC.streamId === streamId) {
+               console.log('Skipping self stream');
+               return;
+           }
+           console.log(`Adding existing stream with id ${vC.streamId} to newly connected user "${username}"`);
+           peer.addStream(vC.stream);
         });
+        // toAdd.forEach(s => {
+        //     peer.streams.addStream(s);
+        // });
     });
 
     channel.vocalClients.set(username, {
         client,
         peer,
-        streamId
+        streamId,
+        stream: null
     });
 };
 
