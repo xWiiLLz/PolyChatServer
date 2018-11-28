@@ -210,33 +210,6 @@ const onLeaveVocalChannel = (payload, user) => {
     removeClientFromVocalChannel(user, channelId);
 };
 
-// const onVoice = (payload, user) => {
-//     const {data, channelId} = payload;
-//     if (!channelId || !channels.has(channelId)) {
-//         return nonExistingChannelError(user.client, channelId);
-//     }
-//
-//     if (!data) {
-//         return noMessageError(user.client);
-//     }
-//
-//     const targetedChannel = channels.get(channelId);
-//     const timestamp = new Date();
-//
-//     const message = JSON.stringify(
-//         {
-//             eventType: 'onVoice',
-//             channelId,
-//             data,
-//             sender: user.username,
-//             timestamp
-//         });
-//
-//     for (let [username, client] of targetedChannel.vocalClients) {
-//         trySendMessage(new User(username, client), message);
-//     }
-// };
-
 const updateChannelsList = (payload, user) => {
     const message = JSON.stringify(
         {
@@ -539,6 +512,26 @@ const removeClientFromVocalChannel = (user, channelId) => {
     const vocalClient = channel.vocalClients.get(user.username);
     if (!vocalClient) {
         return;
+    }
+
+    const {streamId} = vocalClient;
+
+    if (streamId) {
+        const streamIndex = vocalClient.peer.streams.findIndex(s => s.id === streamId);
+
+        if (streamIndex !== -1) {
+            const stream = vocalClient.peer.streams[streamIndex];
+            // Remove stream from peers still referencing it
+            for (let [username, otherVocalClient] of channel.vocalClients) {
+                const currentPeer = otherVocalClient.peer;
+                if (currentPeer) {
+                    console.log(`Removed user ${user.username} who left from user ${username}'s streams`);
+                    currentPeer.removeStream(stream);
+                }
+            }
+        }
+
+
     }
 
     vocalClient.peer.destroy();
