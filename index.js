@@ -10,17 +10,18 @@ const {commands} = require('./handlers/commands');
 const {trySendMessage, tryClose, limitedLengthArray} = require('./handlers/utils');
 const Peer = require('simple-peer');
 const wrtc = require('wrtc');
+const bcrypt = require('bcrypt');
 
-const { noUsernameError, usernameInUseError, reservedUsernameError, nonExistingChannelError, cannotLeaveThisChannelError, noMessageError, noChannelNameError, channelNameLengthError, channelAlreadyExistError, wrongWayAroundError } = require('./handlers/error-handler');
+const { noUsernameError, usernameInUseError, reservedUsernameError, nonExistingChannelError, cannotLeaveThisChannelError, noMessageError, noChannelNameError, channelNameLengthError, channelAlreadyExistError, wrongWayAroundError, wrongPasswordError, passwordRequiredError } = require('./handlers/error-handler');
  
 const wss = new WebSocket.Server({ port: 3005, path: '/chatservice' });
  
 let clients = new Map();
 
 let defaultChannels = [
-    new Channel(uuidv1(), 'Général', true, limitedLengthArray(100)),
-    new Channel(uuidv1(), 'Équipe 1', false, limitedLengthArray(100)),
-    new Channel(uuidv1(), 'Équipe 2', false, limitedLengthArray(100)),
+    new Channel(uuidv1(), 'Général', null, true, limitedLengthArray(100)),
+    new Channel(uuidv1(), 'Équipe 1', null, false, limitedLengthArray(100)),
+    new Channel(uuidv1(), 'Équipe 2', null, false, limitedLengthArray(100)),
 ];
 
 /* Socket events */
@@ -95,12 +96,12 @@ const onGetChannel = (payload, user) => {
 };
 
 const onCreateChannel = (payload, user) => {
-    const { data } = payload;
-    if (!data) {
+    const { data : {channelName, password} } = payload;
+    if (!data || !channelName) {
         return noChannelNameError(user.client);
     }
 
-    if (data.length < 5 || data.length > 20) {
+    if (channelName.length < 5 || channelName.length > 20) {
         return channelNameLengthError(user.client);
     }
 
@@ -114,18 +115,32 @@ const onCreateChannel = (payload, user) => {
     do {
         uuid = uuidv1();
     } while(channels.has(uuid));
-    channels.set(uuid, {
-        ...new Channel(uuid, data, true, limitedLengthArray(100)),
-        clients: new Map(),
-        vocalClients: new Map()
+
+    if(!password || password.length <= 0) {
+        channels.set(uuid, {
+            ...new Channel(uuid, channelName, null, true, limitedLengthArray(100)),
+            clients: new Map(),
+            vocalClients: new Map()
+        });
+        updateAllChannelsList();
+        return;
+    }
+    bcrypt.genSalt(10, function(err, salt) {
+        bcrypt.hash(password, salt, function(err, hash) {
+            channels.set(uuid, {
+                ...new Channel(uuid, channelName, hash, true, limitedLengthArray(100)),
+                clients: new Map(),
+                vocalClients: new Map()
+            });
+            updateAllChannelsList();
+        });
     });
-    updateAllChannelsList();
 };
 
 let spammers = new Map();
 
 const onJoinChannel = (payload, user) => {
-    const { channelId } = payload;
+    const { channelId,  data : {password} } = payload;
 
     if (!channelId || !channels.has(channelId)) {
         return nonExistingChannelError(user.client, channelId);
@@ -145,12 +160,28 @@ const onJoinChannel = (payload, user) => {
         }
         return;
     }
-    addClientToChannel(user, channelId);
-
-    // Notify all channel's users
-    for (let [username, client] of channel.clients) {
-        updateChannelsList(null, new User(username, client));
+    if(!channel.password || channel.password.length <= 0) {
+        addClientToChannel(user, channelId);
+        // Notify all channel's users
+        for (let [username, client] of channel.clients) {
+            updateChannelsList(null, new User(username, client));
+        }
+        return;
     }
+    if(!password || password.length <= 0){
+        return passwordRequiredError(user.client, channel.name);
+    }
+    bcrypt.compare(password, channel.password, function(err, res) {
+        if(!res){
+            return wrongPasswordError(user.client, channel.name);
+        }
+        addClientToChannel(user, channelId);
+        // Notify all channel's users
+        for (let [username, client] of channel.clients) {
+            updateChannelsList(null, new User(username, client));
+        }
+    });
+
 };
 
 
@@ -216,8 +247,8 @@ const updateChannelsList = (payload, user) => {
             eventType: 'updateChannelsList',
             channelId: null,
             data: Array.from(channels).map(x => {
-                const {id, name, clients} = x[1];
-                return {id, name, joinStatus: clients.has(user.username), messages: null, numberOfUsers: clients.size}
+                const {id, name, password, clients} = x[1];
+                return {id, name, joinStatus: clients.has(user.username), isPasswordProtected : password && password.length > 0 , messages: null, numberOfUsers: clients.size}
             }),
             sender: 'Admin',
             timestamp: new Date()

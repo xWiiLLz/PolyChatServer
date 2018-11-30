@@ -60,6 +60,13 @@ function wrongWayAroundError(ws) {
     trySendMessage(new User(null, ws), simpleErrorMessage(`You've got this the wrong way around, friend. I'm the one supposed to send you this event, not the other way around!`));
 }
 
+function wrongPasswordError(ws, name){
+    trySendMessage(new User(null, ws), simpleErrorMessage(`The password you entered to join the channel ${name} is incorrect!`));
+}
+
+function passwordRequiredError(ws, name){
+    trySendMessage(new User(null, ws), simpleErrorMessage(`You must send a password to join the channel ${name}!`));
+}
 module.exports = {
     noUsernameError,
     usernameInUseError,
@@ -70,5 +77,7 @@ module.exports = {
     noChannelNameError,
     channelNameLengthError,
     channelAlreadyExistError,
-    wrongWayAroundError
+    wrongWayAroundError,
+    wrongPasswordError,
+    passwordRequiredError
 };
